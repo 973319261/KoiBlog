@@ -1,0 +1,47 @@
+server:
+  port: 8082
+  use-forward-headers: true
+  undertow:
+    io-threads: 2
+    worker-threads: 36
+    buffer-size: 1024
+    directBuffers: true
+  servlet:
+    session:
+      timeout: 86400
+spring:
+  transaction:
+    rollback-on-commit-failure: true
+  datasource:
+    #数据源
+    type: com.alibaba.druid.pool.DruidDataSource
+    #MySql配置
+    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/koiblog?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC
+    username: root
+    password: root
+  redis:
+    database: 0
+    host: 127.0.0.1
+    port: 6379
+    password:
+    jedis:
+      pool:
+        #最大连接数据库连接数,设 0 为没有限制
+        max-active: 8
+        #最大等待连接中的数量,设 0 为没有限制
+        max-idle: 8
+        #最大建立连接等待时间。如果超过此时间将接到异常。设为-1表示无限制。
+        max-wait: -1
+        #最小等待连接中的数量,设 0 为没有限制
+        min-idle: 0
+    timeout: 5000
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 20MB
+mybatis-plus:
+  #sql映射文件位置
+  mapper-locations: classpath*:com/koi/mapper/*Mapper.xml
+  #实体扫描，多个package用逗号或者分号分隔
+  typeAliasesPackage: com.koi.entity

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.koi.mapper.TagMapper">
+    <!--新增标签-->
+    <insert id="insertTag">
+        INSERT INTO tag(tag_name)value
+        <foreach collection="list" separator="," item="tag_name">
+            (#{tag_name})
+        </foreach>
+    </insert>
+    <!-- 新增标签明细表-->
+    <insert id="insertArticleAndTag">
+        INSERT into article_tag(a_id,t_id)values
+        <foreach collection="tag_id" item="t_id" separator=",">
+            (#{article_id},#{t_id})
+        </foreach>
+    </insert>
+    <!--通过标签名查询标签ID-->
+    <select id="findTagsIdByTagName" resultType="int">
+        SELECT tag_id FROM tag WHERE tag_name IN
+        <foreach collection="list" item="tag_name" open="(" separator="," close=")">
+            #{tag_name}
+        </foreach>
+    </select>
+    <!--通过标签名查询标签是否存在-->
+    <select id="findTagsName" resultType="String">
+        SELECT tag_name FROM tag WHERE tag_name IN
+        <foreach collection="list" item="tag_name" open="(" separator="," close=")">
+            #{tag_name}
+        </foreach>
+    </select>
+    <!--通过文章ID删除标签明细-->
+    <delete id="deleteTagByArticleId" parameterType="Integer">
+      DELETE FROM article_tag WHERE a_id=#{article_id}
+    </delete>
+    <!--通过标签ID删除标签和标签明细-->
+    <delete id="deleteTagByTagId" parameterType="Integer">
+         DELETE tag.*,article_tag.* FROM tag LEFT JOIN article_tag ON tag.tag_id=article_tag.t_id
+        WHERE tag_id =#{tag_id}
+    </delete>
+    <!--查询所有标签-->
+    <select id="findTagAll" resultType="tag">
+        SELECT * FROM tag
+    </select>
+</mapper>

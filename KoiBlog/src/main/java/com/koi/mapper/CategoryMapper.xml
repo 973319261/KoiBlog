@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.koi.mapper.CategoryMapper">
+    <!--查询所有博客分类-->
+    <select id="findCategoryAll" resultType="category">
+        SELECT * FROM category ORDER BY category.category_id;
+    </select>
+    <!--通过分类名称查询总数-->
+    <select id="findCategoryCountByName" resultType="int">
+        SELECT COUNT(*) FROM category
+        <if test="_parameter!=null and _parameter!=''">
+            WHERE category_name LIKE concat('%',#{keywords},'%')
+        </if>
+    </select>
+    <!--通过分类名称分页查询-->
+    <select id="findCategoryPageByName" resultType="category">
+        SELECT * FROM category
+        <if test="keywords!=null and keywords!=''">
+            WHERE category_name LIKE concat('%',#{keywords},'%')
+        </if>
+        ORDER BY category.category_id
+        limit #{start},#{count}
+    </select>
+    <!--新增文章分类-->
+    <insert id="insertCategory" parameterType="category">
+        INSERT INTO category(category_name,createDate)
+        VALUES (#{category_name},#{createDate})
+    </insert>
+    <!--修改文章分类-->
+    <update id="updateCategory" parameterType="category">
+        UPDATE category SET
+        category_name=#{category_name},
+        createDate=#{createDate}
+        WHERE category_id=#{category_id}
+    </update>
+    <!--通过分类ID查询是否有关联文章-->
+    <select id="findArticleByCategoryId" parameterType="int" resultType="int">
+        SELECT COUNT(*) FROM article,category WHERE article.category_id=category.category_id
+        AND category.category_id=#{category_id}
+    </select>
+    <!--通过ID删除文章-->
+    <delete id="deleteCategory" parameterType="int">
+        DELETE FROM category WHERE category_id=#{category_id}
+    </delete>
+    <!--通过分类名称查询该分类是否存在-->
+    <select id="findCategoryByName" resultType="int">
+        SELECT COUNT(*) FROM category WHERE category_name=#{category_name}
+    </select>
+    <!--查询文章分类和该文章分类下的文章列表-->
+    <select id="findArticleToCategory" resultMap="articleToCategory">
+        SELECT * FROM category
+        LIMIT 4
+    </select>
+    <!--查询文章分类和该文章分类下的文章列表返回值-->
+    <resultMap id="articleToCategory" type="category">
+        <id column="category_id" property="category_id"></id>
+        <result column="category_name" property="category_name"></result>
+        <collection property="article" ofType="article" column="category_id" select="selectArticle">
+        </collection>
+    </resultMap>
+    <!--通过文章分类嵌套查询文章-->
+    <select id="selectArticle" parameterType="int" resultType="article">
+         SELECT * FROM article WHERE category_id=#{category_id}
+         AND article_state=0
+         ORDER BY article.article_publishDate DESC
+         LIMIT 10
+    </select>
+</mapper>

@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.koi.mapper.ArticleMapper">
+    <resultMap id="baseResultMap" type="article">
+        <id column="article_id" property="article_id"/>
+        <result column="category_id" property="category_id"/>
+        <result column="user_id" property="user_id"/>
+        <result column="article_title" property="article_title"/>
+        <result column="article_mdContent" property="article_mdContent"/>
+        <result column="article_htmlContent" property="article_htmlContent"/>
+        <result column="article_summary" property="article_summary"/>
+        <result column="article_publishDate" property="article_publishDate"/>
+        <result column="article_editTime" property="article_editTime"/>
+        <result column="article_state" property="article_state"/>
+        <result column="article_isComment" property="article_isComment"/>
+        <result column="article_type" property="article_type"/>
+        <result column="article_pageView" property="article_pageView"/>
+        <result column="article_likeNumber" property="article_likeNumber"/>
+        <association property="user" column="article_id" javaType="user">
+            <id column="user_id" property="user_id"></id>
+            <result column="user_nickname" property="user_nickname"></result>
+            <result column="user_avatar" property="user_avatar"></result>
+        </association>
+        <association property="category" column="article_id" javaType="category">
+            <id column="category_id" property="category_id"></id>
+            <result column="category_name" property="category_name"></result>
+        </association>
+        <collection property="tags" ofType="tag" column="article_id" select="findTagByArticleId">
+            <id property="tag_id" column="tag_id"></id>
+            <result column="tag_name" property="tag_name"></result>
+        </collection>
+    </resultMap>
+    <sql id="selectBase">
+        SELECT * FROM article INNER JOIN USER ON article.user_id=user.user_id INNER JOIN category ON article.category_id
+        = category.category_id
+    </sql>
+    <!--通过主键ID查询文章-->
+    <select id="findArticleById" resultMap="baseResultMap">
+        <include refid="selectBase"></include>
+        WHERE article_id=#{article_id}
+    </select>
+    <!--获取上一篇文章-->
+    <select id="findPreArticle" resultType="article">
+        SELECT article_id,article_title FROM article WHERE article_id > #{article_id} AND article_state=0 ORDER BY article_id LIMIT 1
+    </select>
+    <!--获取下一篇文章-->
+    <select id="findNextArticle" resultType="article">
+        SELECT article_id,article_title FROM article WHERE article_id
+        &lt;
+        #{article_id} AND article_state=0 ORDER BY article_id DESC LIMIT 1
+    </select>
+    <!--获取热门文章-->
+    <select id="findHotArticles" resultType="article">
+         SELECT article_id,article_title,article_pageView FROM article WHERE article_state=0 ORDER BY article_pageView DESC LIMIT 10
+    </select>
+    <!--通过标签名称获取相关文章-->
+    <select id="findRelationArticle" resultType="article">
+        SELECT DISTINCT article_id,article_title FROM article,article_tag,tag
+        WHERE article.article_id=article_tag.a_id AND tag.tag_id=article_tag.t_id
+        AND article_id!=#{article_id} AND article_state=0 AND tag_name IN
+        <foreach collection="tags" item="tag_name" open="(" separator="," close=")">
+            #{tag_name}
+        </foreach>
+    </select>
+    <!--通过标签获取相关文章-->
+    <select id="findArticleByTagId" resultMap="baseResultMap">
+       SELECT * FROM article INNER JOIN USER ON article.user_id=user.user_id INNER JOIN category ON article.category_id
+        = category.category_id INNER JOIN article_tag ON article.article_id=article_tag.a_id INNER JOIN tag ON tag.tag_id=article_tag.t_id
+       WHERE article_tag.t_id=#{tag_id} AND article_state=0
+       limit #{start},#{count}
+    </select>
+    <!--通过标签获取相关文章总数-->
+    <select id="findArticleCountByTagId" resultType="Integer">
+      SELECT COUNT(*) FROM article INNER JOIN USER ON article.user_id=user.user_id INNER JOIN category ON article.category_id
+        = category.category_id INNER JOIN article_tag ON article.article_id=article_tag.a_id INNER JOIN tag ON tag.tag_id=article_tag.t_id
+       WHERE article_tag.t_id=#{tag_id} AND article_state=0
+    </select>
+    <!--新增文章-->
+    <insert id="insertArticle" parameterType="article" keyProperty="article_id" useGeneratedKeys="true">
+        INSERT INTO
+        article(category_id,user_id,article_title,article_mdContent,article_htmlContent,article_summary,
+        article_publishDate,article_editTime,article_state,article_pageView,article_likeNumber,article_isComment,article_type)values
+         (#{category_id},#{user_id},#{article_title},#{article_mdContent},#{article_htmlContent},#{article_summary},
+         #{article_publishDate},#{article_editTime},#{article_state},0,0,#{article_isComment},#{article_type})
+    </insert>
+    <!--修改文章-->
+    <update id="updateArticle" parameterType="article">
+        UPDATE article SET
+        article_title=#{article_title},
+        article_title=#{article_title},
+        article_mdContent=#{article_mdContent},
+        article_htmlContent=#{article_htmlContent},
+        article_summary=#{article_summary},
+        article_editTime=#{article_editTime},
+        article_type=#{article_type},
+        category_id=#{category_id},
+        article_isComment=#{article_isComment},
+        article_state=#{article_state}
+        <if test="article_publishDate!=null">
+            ,article_publishDate=#{article_publishDate}
+        </if>
+        WHERE article_id=#{article_id}
+    </update>
+    <!--修改访问量-->
+    <update id="updatePageView" parameterType="Integer">
+        UPDATE article SET article_pageView=article_pageView+1
+        WHERE article_id=#{article_id}
+    </update>
+    <!--修改点赞数-->
+    <update id="updateLikeNumber" parameterType="Integer">
+        UPDATE article SET article_likeNumber=article_likeNumber+1
+        WHERE article_id=#{article_id}
+    </update>
+    <!--通过文章状态和关键字或者分类ID分页查询文章-->
+    <select id="findArticleByState" resultMap="baseResultMap">
+        <include refid="selectBase"></include>
+        <where>
+            <if test="article_state!=null">
+                and article_state=#{article_state}
+            </if>
+            <if test="keywords!=null and keywords!=''">
+                and article_title LIKE concat('%',#{keywords},'%')
+            </if>
+            <if test="category_id!=null and category_id!=0">
+                and article.category_id=#{category_id}
+            </if>
+        </where>
+        ORDER BY article_id DESC
+        limit #{start},#{count}
+    </select>
+    <!-- 通过文章id查询标签列表 -->
+    <select id="findTagByArticleId" resultType="tag">
+		SELECT * FROM tag  LEFT JOIN article_tag ON article_tag.t_id=tag.tag_id
+           WHERE article_tag.a_id=#{article_id}
+	</select>
+    <!--通过文章状态和关键字分页查询文章总数-->
+    <select id="findArticleCountByState" resultType="int">
+        SELECT COUNT(*) FROM article
+        <where>
+            <if test="article_state!=null">
+                article_state=#{article_state}
+            </if>
+            <if test="keywords!=null and keywords!=''">
+                AND article_title LIKE concat('%',#{keywords},'%')
+            </if>
+            <if test="category_id!=null and category_id!=0">
+                and category_id=#{category_id}
+            </if>
+        </where>
+    </select>
+    <!--通过文章ID修改文章状态（回收或者恢复）-->
+    <update id="updateStateById">
+        UPDATE article SET article_state=#{state}
+        WHERE article_id IN
+        <foreach collection="aids" item="article_id" open="(" separator="," close=")">
+            #{article_id}
+        </foreach>
+    </update>
+    <!-- 通过文章ID删除文章（数据库永久删除）-->
+    <delete id="deleteArticleById">
+        DELETE article.*,article_tag.* FROM article LEFT JOIN article_tag ON article.article_id=article_tag.a_id
+        WHERE article_id IN
+        <foreach collection="array" item="article_id" open="(" separator="," close=")">
+            #{article_id}
+        </foreach>
+    </delete>
+</mapper>
